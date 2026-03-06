@@ -42,28 +42,31 @@ export const createProduct = async (req, res) => {
   }
 };
 
+
 export const getProducts = async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    // Fetch all products as plain JS objects
+    const products = await Product.find().sort({ createdAt: -1 }).lean();
 
+    // Get all product IDs
     const productIds = products.map((p) => p._id);
 
-    const images = await ProductImage.find({
-      product_id: { $in: productIds },
-    });
+    // Fetch all images for these products
+    const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
 
+    // Map products with their corresponding images
     const productWithImages = products.map((product) => {
       return {
-        ...product._doc,
-
-        images: images.filter(
-          (img) => img.product_id.toString() === product._id.toString(),
-        ),
+        ...product,
+        images: images
+          .filter((img) => img.product_id.toString() === product._id.toString())
+          .map((img) => img.image_url), // Only return URLs
       };
     });
 
     res.json(productWithImages);
   } catch (error) {
+    console.error("Error fetching products:", error);
     res.status(500).json({
       message: "Server Error",
       error: error.message,

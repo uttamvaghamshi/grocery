@@ -44,23 +44,46 @@ export const addToCart = async (req, res) => {
   }
 };
 
+
 export const getCart = async (req, res) => {
   try {
     const user_id = req.user.id;
 
-    const cart = await Cart.findOne({ user_id }).populate("items.product_id");
+
+    const cart = await Cart.findOne({ user_id }).populate("items.product_id").lean();
 
     if (!cart) {
       return res.json({
+        success: true,
         items: [],
       });
     }
 
+    const productIds = cart.items.map((item) => item.product_id._id);
+
+    const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
+
+    const itemsWithImages = cart.items.map((item) => {
+      const product = { ...item.product_id };
+      product.images = images
+        .filter((img) => img.product_id.toString() === product._id.toString())
+        .map((img) => img.image_url); // Return only URLs
+
+      return {
+        ...item,
+        product_id: product,
+      };
+    });
+
     res.json({
       success: true,
-      cart,
+      cart: {
+        ...cart,
+        items: itemsWithImages,
+      },
     });
   } catch (error) {
+    console.error("Error fetching cart:", error);
     res.status(500).json({ message: error.message });
   }
 };
