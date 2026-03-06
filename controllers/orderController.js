@@ -59,7 +59,10 @@ export const getMyOrders = async (req, res) => {
     const user_id = req.user.id;
 
     const orders = await Order.find({ user_id })
-      .populate("items.product_id")
+      .populate({
+        path: "items.product_id",
+        select: "name price description images unit",
+      })
       .sort({ createdAt: -1 });
 
     res.json({
