@@ -89,7 +89,7 @@ export const getMyOrders = async (req, res) => {
         const product = { ...item.product_id };
         product.images = images
           .filter((img) => img.product_id.toString() === product._id.toString())
-          .map((img) => img.image_url); // Return only URLs
+          .map((img) => img.image_url);
 
         return {
           ...item,
@@ -116,20 +116,51 @@ export const getSingleOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
 
-    const order = await Order.findById(order_id).populate("items.product_id");
+    // Find order and populate products
+    const order = await Order.findById(order_id)
+      .populate("user_id")
+      .populate("items.product_id")
+      .lean();
 
     if (!order) {
       return res.status(404).json({
+        success: false,
         message: "Order not found",
       });
     }
+
+    // Get all product ids from order
+    const productIds = order.items.map((item) => item.product_id._id);
+
+    // Fetch product images
+    const images = await ProductImage.find({
+      product_id: { $in: productIds },
+    });
+
+    // Attach images to each product
+    order.items = order.items.map((item) => {
+      const productImages = images.filter(
+        (img) =>
+          img.product_id.toString() === item.product_id._id.toString()
+      );
+
+      return {
+        ...item,
+        product: {
+          ...item.product_id,
+          images: productImages.map((img) => img.image_url),
+        },
+      };
+    });
 
     res.json({
       success: true,
       order,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
