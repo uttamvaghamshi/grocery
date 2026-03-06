@@ -1,6 +1,8 @@
 import Product from "../models/Product.js";
 import ProductImage from "../models/ProductImages.js";
 import { uploadImage } from "../utils/cloudinaryUpload.js";
+import { deleteCloudinaryImage } from "../utils/deleteCloudinaryImage.js";
+
 
 export const createProduct = async (req, res) => {
   try {
@@ -196,9 +198,7 @@ export const addProductImages = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const product = await Product.findById(id);
+    const product = await Product.findById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -206,28 +206,29 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    // Find product image
-    const image = await ProductImage.findOne({
-      product_id: id,
+    // get product images
+    const images = await ProductImage.find({
+      product_id: req.params.id,
     });
 
-    // Delete image from Cloudinary
-    if (image && image.public_id) {
-      await deleteImage(image.public_id); // your cloudinary delete function
+    // delete images from Cloudinary
+    for (const img of images) {
+      await deleteCloudinaryImage(img.image_url);
     }
 
-    // Delete image from database
-    await ProductImage.deleteOne({
-      product_id: id,
+    // delete image records
+    await ProductImage.deleteMany({
+      product_id: req.params.id,
     });
 
-    // Delete product
+    // delete product
     await product.deleteOne();
 
     res.json({
       success: true,
-      message: "Product and image deleted successfully",
+      message: "Product and images deleted successfully",
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Server Error",
