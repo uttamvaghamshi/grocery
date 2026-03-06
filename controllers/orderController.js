@@ -40,7 +40,6 @@ export const createOrder = async (req, res) => {
 
     await order.save();
 
-    // clear cart
     cart.items = [];
     await cart.save();
 
@@ -61,7 +60,12 @@ export const getMyOrders = async (req, res) => {
     const orders = await Order.find({ user_id })
       .populate({
         path: "items.product_id",
-        select: "name price description images unit",
+        select: "name price description unit",
+        populate: {
+          path: "images", // populate images from ProductImages
+          model: "ProductImages", // make sure this matches your model name
+          select: "image -_id",
+        },
       })
       .sort({ createdAt: -1 });
 
