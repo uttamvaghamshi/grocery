@@ -15,33 +15,59 @@ export const addToCart = async (req, res) => {
       });
 
       await cart.save();
-
-      return res.status(201).json({
-        success: true,
-        message: "Product added to new cart",
-        cart,
-      });
-    }
-
-    const itemIndex = cart.items.findIndex(
-      (item) => item.product_id.toString() === product_id,
-    );
-
-    if (itemIndex > -1) {
-      cart.items[itemIndex].quantity += quantity;
     } else {
-      cart.items.push({ product_id, quantity });
+      const itemIndex = cart.items.findIndex(
+        (item) => item.product_id.toString() === product_id
+      );
+
+      if (itemIndex > -1) {
+        cart.items[itemIndex].quantity += quantity;
+      } else {
+        cart.items.push({ product_id, quantity });
+      }
+
+      await cart.save();
     }
 
-    await cart.save();
+    // Populate products
+    const populatedCart = await Cart.findOne({ user_id })
+      .populate("items.product_id")
+      .lean();
+
+    // Get all product ids
+    const productIds = populatedCart.items.map((item) => item.product_id._id);
+
+    // Fetch images
+    const images = await ProductImage.find({
+      product_id: { $in: productIds },
+    }).lean();
+
+    // Attach single image to each product
+    const items = populatedCart.items.map((item) => {
+      const image = images.find(
+        (img) =>
+          img.product_id.toString() === item.product_id._id.toString()
+      );
+
+      return {
+        ...item,
+        product: {
+          ...item.product_id,
+          image: image ? image.image_url : null,
+        },
+      };
+    });
 
     res.json({
       success: true,
       message: "Product added to cart",
-      cart,
+      items,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 
@@ -50,7 +76,9 @@ export const getCart = async (req, res) => {
   try {
     const user_id = req.user.id;
 
-    const cart = await Cart.findOne({ user_id }).populate("items.product_id").lean();
+    const cart = await Cart.findOne({ user_id })
+      .populate("items.product_id")
+      .lean();
 
     if (!cart) {
       return res.json({
@@ -61,13 +89,18 @@ export const getCart = async (req, res) => {
 
     const productIds = cart.items.map((item) => item.product_id._id);
 
-    const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
+    const images = await ProductImage.find({
+      product_id: { $in: productIds },
+    }).lean();
 
     const itemsWithImages = cart.items.map((item) => {
       const product = { ...item.product_id };
-      product.images = images
-        .filter((img) => img.product_id.toString() === product._id.toString())
-        .map((img) => img.image_url); // Return only URLs
+
+      const image = images.find(
+        (img) => img.product_id.toString() === product._id.toString()
+      );
+
+      product.image = image ? image.image_url : null;
 
       return {
         ...item,
@@ -84,7 +117,10 @@ export const getCart = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching cart:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 

@@ -3,7 +3,6 @@ import ProductImage from "../models/ProductImages.js";
 
 export const addToWishlist = async (req, res) => {
   try {
-
     const user_id = req.user.id;
     const { product_id } = req.body;
 
@@ -12,26 +11,41 @@ export const addToWishlist = async (req, res) => {
     if (exists) {
       return res.status(400).json({
         success: false,
-        message: "Product already in wishlist"
+        message: "Product already in wishlist",
       });
     }
 
     const wishlist = await Wishlist.create({
       user_id,
-      product_id
+      product_id,
     });
+
+    // Fetch product
+    const product = await Product.findById(product_id).lean();
+
+    // Fetch single image
+    const image = await ProductImage.findOne({
+      product_id: product_id,
+    }).lean();
+
+    const productWithImage = {
+      ...product,
+      image: image ? image.image_url : null,
+    };
 
     res.status(201).json({
       success: true,
       message: "Product added to wishlist",
-      data: wishlist
+      data: {
+        ...wishlist._doc,
+        product: productWithImage,
+      },
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Server Error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -74,12 +88,7 @@ export const getWishlist = async (req, res) => {
     const user_id = req.user.id;
 
     const wishlist = await Wishlist.find({ user_id })
-      .populate({
-        path: "product_id",
-        populate: {
-          path: "store_id",
-        },
-      })
+      .populate("product_id")
       .lean();
 
     if (!wishlist || wishlist.length === 0) {
@@ -92,13 +101,18 @@ export const getWishlist = async (req, res) => {
 
     const productIds = wishlist.map((item) => item.product_id._id);
 
-    const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
+    const images = await ProductImage.find({
+      product_id: { $in: productIds },
+    }).lean();
 
     const wishlistWithImages = wishlist.map((item) => {
       const product = { ...item.product_id };
-      product.images = images
-        .filter((img) => img.product_id.toString() === product._id.toString())
-        .map((img) => img.image_url);
+
+      const image = images.find(
+        (img) => img.product_id.toString() === product._id.toString()
+      );
+
+      product.image = image ? image.image_url : null;
 
       return {
         ...item,
@@ -116,6 +130,7 @@ export const getWishlist = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server Error",
+      error: error.message,
     });
   }
 };

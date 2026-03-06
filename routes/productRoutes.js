@@ -13,18 +13,18 @@ import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", upload.array("images", 5), createProduct);
+router.post("/create", upload.single("images"), createProduct);
 
 router.get("/", getProducts);
 
 router.get("/:id", getProductById);
 
-router.put("/update/:id", upload.array("images"), updateProduct);
+router.put("/update/:id", upload.single("images"), updateProduct);
 
 router.post(
   "/add-images",
   
-  upload.array("images", 5),
+  upload.single("images"),
   addProductImages,
 );
 

@@ -117,7 +117,6 @@ export const getSingleOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
 
-    // Find order and populate products
     const order = await Order.findById(order_id)
       .populate("user_id")
       .populate("items.product_id")
@@ -130,26 +129,26 @@ export const getSingleOrder = async (req, res) => {
       });
     }
 
-    // Get all product ids from order
+    // Collect product ids
     const productIds = order.items.map((item) => item.product_id._id);
 
     // Fetch product images
     const images = await ProductImage.find({
       product_id: { $in: productIds },
-    });
+    }).lean();
 
-    // Attach images to each product
+    // Attach single image
     order.items = order.items.map((item) => {
-      const productImages = images.filter(
+      const image = images.find(
         (img) =>
           img.product_id.toString() === item.product_id._id.toString()
       );
 
       return {
         ...item,
-        product: {
+        product_id: {
           ...item.product_id,
-          images: productImages.map((img) => img.image_url),
+          image: image ? image.image_url : null,
         },
       };
     });
@@ -160,7 +159,8 @@ export const getSingleOrder = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: error.message,
+      message: "Server Error",
+      error: error.message,
     });
   }
 };
@@ -197,14 +197,64 @@ export const getAllOrders = async (req, res) => {
     const orders = await Order.find()
       .populate("user_id")
       .populate("items.product_id")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!orders || orders.length === 0) {
+      return res.json({
+        success: true,
+        orders: [],
+      });
+    }
+
+    // Collect all product ids
+    const productIds = [];
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        if (item.product_id?._id) {
+          productIds.push(item.product_id._id);
+        }
+      });
+    });
+
+    // Fetch product images
+    const images = await ProductImage.find({
+      product_id: { $in: productIds },
+    }).lean();
+
+    // Attach single image to each product
+    const ordersWithImages = orders.map((order) => {
+      const itemsWithImages = order.items.map((item) => {
+        const product = { ...item.product_id };
+
+        const image = images.find(
+          (img) => img.product_id.toString() === product._id.toString()
+        );
+
+        product.image = image ? image.image_url : null;
+
+        return {
+          ...item,
+          product_id: product,
+        };
+      });
+
+      return {
+        ...order,
+        items: itemsWithImages,
+      };
+    });
 
     res.json({
       success: true,
-      orders,
+      orders: ordersWithImages,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error fetching orders:", error);
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 

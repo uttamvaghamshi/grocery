@@ -7,6 +7,7 @@ export const createProduct = async (req, res) => {
     const { name, description, category, price, discount_price, stock, unit } =
       req.body;
 
+    // Create product
     const product = await Product.create({
       name,
       description,
@@ -17,23 +18,24 @@ export const createProduct = async (req, res) => {
       unit,
     });
 
-    let images = [];
+    let image = null;
 
-    if (req.files) {
-      for (const file of req.files) {
-        const result = await uploadImage(file.buffer, "products");
+    // Single image upload
+    if (req.file) {
+      const result = await uploadImage(req.file.buffer, "products");
 
-        const image = await ProductImage.create({
-          product_id: product._id,
-          image_url: result.secure_url,
-          public_id: result.public_id,
-        });
-
-        images.push(image);
-      }
+      image = await ProductImage.create({
+        product_id: product._id,
+        image_url: result.secure_url,
+        public_id: result.public_id,
+      });
     }
 
-    res.status(201).json({ success: true, product, images });
+    res.status(201).json({
+      success: true,
+      product,
+      image,
+    });
   } catch (error) {
     res.status(500).json({
       message: "Server Error",
@@ -45,26 +47,34 @@ export const createProduct = async (req, res) => {
 
 export const getProducts = async (req, res) => {
   try {
-    // Fetch all products as plain JS objects
+    // Fetch all products
     const products = await Product.find().sort({ createdAt: -1 }).lean();
 
     // Get all product IDs
     const productIds = products.map((p) => p._id);
 
-    // Fetch all images for these products
-    const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
+    // Fetch images
+    const images = await ProductImage.find({
+      product_id: { $in: productIds },
+    }).lean();
 
-    // Map products with their corresponding images
-    const productWithImages = products.map((product) => {
+    // Map single image with product
+    const productWithImage = products.map((product) => {
+      const image = images.find(
+        (img) => img.product_id.toString() === product._id.toString()
+      );
+
       return {
         ...product,
-        images: images
-          .filter((img) => img.product_id.toString() === product._id.toString())
-          .map((img) => img.image_url), // Only return URLs
+        image: image ? image.image_url : null,
       };
     });
 
-    res.json(productWithImages);
+    res.json({
+      success: true,
+      total: productWithImage.length,
+      products: productWithImage,
+    });
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).json({
@@ -76,19 +86,23 @@ export const getProducts = async (req, res) => {
 
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).lean();
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const images = await ProductImage.find({
+    // Get single image
+    const image = await ProductImage.findOne({
       product_id: req.params.id,
-    }).sort({ order: 1 });
+    }).lean();
 
     res.json({
-      product,
-      images,
+      success: true,
+      product: {
+        ...product,
+        image: image ? image.image_url : null,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -100,7 +114,6 @@ export const getProductById = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   try {
-
     const { id } = req.params;
 
     const product = await Product.findById(id);
@@ -111,51 +124,43 @@ export const updateProduct = async (req, res) => {
       });
     }
 
+    // Update product fields
     Object.assign(product, req.body);
-
     await product.save();
 
-    // Existing images from frontend
-    let existingImages = [];
-
-    if (req.body.existingImages) {
-      existingImages = JSON.parse(req.body.existingImages);
-    }
-
-    // Delete removed images
-    await ProductImage.deleteMany({
+    let image = await ProductImage.findOne({
       product_id: product._id,
-      image_url: { $nin: existingImages },
     });
 
-    // Add new images
-    if (req.files && req.files.length > 0) {
+    // If new image uploaded
+    if (req.file) {
+      const result = await uploadImage(req.file.buffer, "products");
 
-      const newImages = req.files.map(file => ({
-        product_id: product._id,
-        image_url: file.path
-      }));
-
-      await ProductImage.insertMany(newImages);
+      if (image) {
+        // Update existing image
+        image.image_url = result.secure_url;
+        image.public_id = result.public_id;
+        await image.save();
+      } else {
+        // Create new image
+        image = await ProductImage.create({
+          product_id: product._id,
+          image_url: result.secure_url,
+          public_id: result.public_id,
+        });
+      }
     }
-
-    const images = await ProductImage.find({
-      product_id: product._id
-    });
 
     res.json({
       success: true,
       product,
-      images
+      image: image ? image.image_url : null,
     });
-
   } catch (error) {
-
     res.status(500).json({
       message: "Server Error",
-      error: error.message
+      error: error.message,
     });
-
   }
 };
 
@@ -191,7 +196,9 @@ export const addProductImages = async (req, res) => {
 
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({
@@ -199,15 +206,27 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    await ProductImage.deleteMany({
-      product_id: req.params.id,
+    // Find product image
+    const image = await ProductImage.findOne({
+      product_id: id,
     });
 
+    // Delete image from Cloudinary
+    if (image && image.public_id) {
+      await deleteImage(image.public_id); // your cloudinary delete function
+    }
+
+    // Delete image from database
+    await ProductImage.deleteOne({
+      product_id: id,
+    });
+
+    // Delete product
     await product.deleteOne();
 
     res.json({
       success: true,
-      message: "Product deleted",
+      message: "Product and image deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
