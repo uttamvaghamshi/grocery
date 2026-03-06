@@ -209,26 +209,35 @@ export const getAllOrders = async (req, res) => {
 
     // Collect all product ids
     const productIds = [];
+
     orders.forEach((order) => {
       order.items.forEach((item) => {
-        if (item.product_id?._id) {
+        if (item.product_id && item.product_id._id) {
           productIds.push(item.product_id._id);
         }
       });
     });
 
-    // Fetch product images
+    // Fetch images
     const images = await ProductImage.find({
       product_id: { $in: productIds },
     }).lean();
 
-    // Attach single image to each product
     const ordersWithImages = orders.map((order) => {
+
       const itemsWithImages = order.items.map((item) => {
+
+        if (!item.product_id) {
+          return item;
+        }
+
         const product = { ...item.product_id };
 
         const image = images.find(
-          (img) => img.product_id.toString() === product._id.toString()
+          (img) =>
+            img.product_id &&
+            product._id &&
+            img.product_id.toString() === product._id.toString()
         );
 
         product.image = image ? image.image_url : null;
@@ -249,8 +258,10 @@ export const getAllOrders = async (req, res) => {
       success: true,
       orders: ordersWithImages,
     });
+
   } catch (error) {
     console.error("Error fetching orders:", error);
+
     res.status(500).json({
       message: "Server Error",
       error: error.message,
