@@ -8,18 +8,18 @@ import {
 } from "../controllers/adminUserController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
+
 
 const router = express.Router();
 
-router.get("/users", protect, authorizeRoles("admin"), getAllUsers);
+router.get("/users", protect, getAllUsers);
 
-router.get("/users/:id", protect, authorizeRoles("admin"), getUserById);
+router.get("/users/:id", protect, getUserById);
 
-router.post("/users", protect, authorizeRoles("admin"), createUserByAdmin);
+router.post("/users", protect, createUserByAdmin);
 
-router.put("/users/:id", protect, authorizeRoles("admin"), updateUserByAdmin);
+router.put("/users/:id", protect, updateUserByAdmin);
 
-router.delete("/users/:id", protect, authorizeRoles("admin"), deleteUser);
+router.delete("/users/:id", protect, deleteUser);
 
 export default router;

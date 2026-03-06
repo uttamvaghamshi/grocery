@@ -8,7 +8,6 @@ import {
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 router.post("/register", upload.single("image"), registerUser);
 router.post("/login", loginUser);
