@@ -1,5 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
+import Product from "../models/Product.js";
+import Order from "../models/OrderItem.js";
 
 export const getAllUsers = async (req, res) => {
   try {
@@ -128,6 +130,47 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+export const getDashboardStats = async (req, res) => {
+  try {
+
+    const totalUsers = await User.countDocuments();
+
+    const totalProducts = await Product.countDocuments();
+
+    const totalOrders = await Order.countDocuments();
+
+    const revenue = await Order.aggregate([
+      {
+        $match: { payment_status: "paid" } 
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$total_amount" }
+        }
+      }
+    ]);
+
+    const totalRevenue = revenue.length > 0 ? revenue[0].totalRevenue : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalUsers,
+        totalProducts,
+        totalOrders,
+        totalRevenue
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message
     });
   }
 };

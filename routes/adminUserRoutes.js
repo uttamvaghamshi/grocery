@@ -5,6 +5,7 @@ import {
   createUserByAdmin,
   updateUserByAdmin,
   deleteUser,
+  getDashboardStats,
 } from "../controllers/adminUserController.js";
 
 
@@ -12,6 +13,8 @@ import {
 const router = express.Router();
 
 router.get("/users", getAllUsers);
+
+router.get("/dashboard-stats", getDashboardStats);
 
 router.get("/users/:id", getUserById);
 
