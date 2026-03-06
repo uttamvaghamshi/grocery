@@ -57,27 +57,61 @@ export const getMyOrders = async (req, res) => {
   try {
     const user_id = req.user.id;
 
+    // Fetch orders for this user
     const orders = await Order.find({ user_id })
-      .populate({
-        path: "items.product_id",
-        select: "name price description unit",
-        populate: {
-          path: "images", // populate images from ProductImages
-          model: "ProductImages", // make sure this matches your model name
-          select: "image -_id",
-        },
-      })
-      .sort({ createdAt: -1 });
+      .populate("items.product_id")
+      .sort({ createdAt: -1 })
+      .lean(); // use lean for easy object manipulation
+
+    if (!orders || orders.length === 0) {
+      return res.json({
+        success: true,
+        orders: [],
+      });
+    }
+
+    // Collect all product IDs from all orders
+    const productIds = [];
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        if (item.product_id?._id) {
+          productIds.push(item.product_id._id);
+        }
+      });
+    });
+
+    // Fetch images for all products
+    const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
+
+    // Merge images into order items
+    const ordersWithImages = orders.map((order) => {
+      const itemsWithImages = order.items.map((item) => {
+        const product = { ...item.product_id };
+        product.images = images
+          .filter((img) => img.product_id.toString() === product._id.toString())
+          .map((img) => img.image_url); // Return only URLs
+
+        return {
+          ...item,
+          product_id: product,
+        };
+      });
+
+      return {
+        ...order,
+        items: itemsWithImages,
+      };
+    });
 
     res.json({
       success: true,
-      orders,
+      orders: ordersWithImages,
     });
   } catch (error) {
+    console.error("Error fetching orders:", error);
     res.status(500).json({ message: error.message });
   }
 };
-
 export const getSingleOrder = async (req, res) => {
   try {
     const { order_id } = req.params;
