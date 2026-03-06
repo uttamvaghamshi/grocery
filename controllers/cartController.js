@@ -1,4 +1,5 @@
 import Cart from "../models/Cart.js";
+import ProductImage from "../models/ProductImages.js";
 
 export const addToCart = async (req, res) => {
   try {
