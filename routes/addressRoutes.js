@@ -7,14 +7,13 @@ import {
   deleteAddress
 } from "../controllers/addressController.js";
 
-import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", protect, createAddress);
-router.get("/", protect, getUserAddresses);
-router.get("/:id", protect, getSingleAddress);
-router.put("/update/:id", protect, updateAddress);
-router.delete("/delete/:id", protect, deleteAddress);
+router.post("/create", createAddress);
+router.get("/", getUserAddresses);
+router.get("/:id", getSingleAddress);
+router.put("/update/:id", updateAddress);
+router.delete("/delete/:id", deleteAddress);
 
 export default router;

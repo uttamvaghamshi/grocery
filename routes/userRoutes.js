@@ -6,15 +6,13 @@ import {
   getUserProfile,
   updateUserProfile,
 } from "../controllers/authController.js";
-import { protect } from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
 
 router.post("/register", upload.single("image"), registerUser);
 router.post("/login", loginUser);
-router.get("/profile", protect, getUserProfile);
+router.get("/profile", getUserProfile);
 router.put(
   "/update-profile",
-  protect,
   upload.single("image"),
   updateUserProfile,
 );

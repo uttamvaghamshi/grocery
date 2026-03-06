@@ -8,22 +8,20 @@ import {
   updateOrderStatus,
 } from "../controllers/orderController.js";
 
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
-import {protect} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", protect, createOrder);
+router.post("/create", createOrder);
 
-router.get("/my-orders", protect, getMyOrders);
+router.get("/my-orders", getMyOrders);
 
-router.get("/:order_id", protect, getSingleOrder);
+router.get("/:order_id", getSingleOrder);
 
-router.put("/cancel/:order_id", protect, cancelOrder);
+router.put("/cancel/:order_id", cancelOrder);
 
 // admin
-router.get("/admin/all", protect, getAllOrders);
+router.get("/admin/all", getAllOrders);
 
-router.put("/admin/update-status/:order_id", protect, updateOrderStatus);
+router.put("/admin/update-status/:order_id", updateOrderStatus);
 
 export default router;
