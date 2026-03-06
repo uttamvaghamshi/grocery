@@ -50,7 +50,6 @@ export const getCart = async (req, res) => {
   try {
     const user_id = req.user.id;
 
-
     const cart = await Cart.findOne({ user_id }).populate("items.product_id").lean();
 
     if (!cart) {

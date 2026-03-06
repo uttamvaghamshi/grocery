@@ -1,4 +1,5 @@
 import Wishlist from "../models/Wishlist.js";
+import ProductImage from "../models/ProductImages.js";
 
 export const addToWishlist = async (req, res) => {
   try {
@@ -67,29 +68,54 @@ export const removeWishlist = async (req, res) => {
   }
 };
 
+
 export const getWishlist = async (req, res) => {
   try {
-
     const user_id = req.user.id;
 
     const wishlist = await Wishlist.find({ user_id })
       .populate({
         path: "product_id",
         populate: {
-          path: "store_id"
-        }
+          path: "store_id",
+        },
+      })
+      .lean();
+
+    if (!wishlist || wishlist.length === 0) {
+      return res.json({
+        success: true,
+        total: 0,
+        data: [],
       });
+    }
+
+    const productIds = wishlist.map((item) => item.product_id._id);
+
+    const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
+
+    const wishlistWithImages = wishlist.map((item) => {
+      const product = { ...item.product_id };
+      product.images = images
+        .filter((img) => img.product_id.toString() === product._id.toString())
+        .map((img) => img.image_url);
+
+      return {
+        ...item,
+        product_id: product,
+      };
+    });
 
     res.json({
       success: true,
-      total: wishlist.length,
-      data: wishlist
+      total: wishlistWithImages.length,
+      data: wishlistWithImages,
     });
-
   } catch (error) {
+    console.error("Error fetching wishlist:", error);
     res.status(500).json({
       success: false,
-      message: "Server Error"
+      message: "Server Error",
     });
   }
 };
