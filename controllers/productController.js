@@ -100,21 +100,57 @@ export const getProductById = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({
+        success: false,
         message: "Product not found",
       });
     }
 
-    Object.assign(product, req.body);
+    // Update product fields
+    const {
+      name,
+      description,
+      category,
+      price,
+      discount_per,
+      stock,
+      unit,
+    } = req.body;
+
+    product.name = name ?? product.name;
+    product.description = description ?? product.description;
+    product.category = category ?? product.category;
+    product.price = price ?? product.price;
+    product.discount_per = discount_per ?? product.discount_per;
+    product.stock = stock ?? product.stock;
+    product.unit = unit ?? product.unit;
 
     await product.save();
+
+    // Upload new images if provided
+    if (req.files && req.files.length > 0) {
+      const images = req.files.map((file) => ({
+        product_id: product._id,
+        image_url: file.path, // or file.filename depending on your setup
+      }));
+
+      await ProductImage.insertMany(images);
+    }
+
+    // Fetch updated images
+    const productImages = await ProductImage.find({
+      product_id: product._id,
+    });
 
     res.json({
       success: true,
       product,
+      images: productImages,
     });
   } catch (error) {
     res.status(500).json({

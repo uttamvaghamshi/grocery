@@ -19,7 +19,7 @@ router.get("/", getProducts);
 
 router.get("/:id", getProductById);
 
-router.put("/update/:id", updateProduct);
+router.put("/update/:id", upload.array("images"), updateProduct);
 
 router.post(
   "/add-images",
