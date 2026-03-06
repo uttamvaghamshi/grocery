@@ -8,16 +8,17 @@ import {
   updateOrderStatus,
 } from "../controllers/orderController.js";
 
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/create", createOrder);
+router.post("/create",protect, createOrder);
 
-router.get("/my-orders", getMyOrders);
+router.get("/my-orders",protect, getMyOrders);
 
-router.get("/:order_id", getSingleOrder);
+router.get("/:order_id",protect, getSingleOrder);
 
-router.put("/cancel/:order_id", cancelOrder);
+router.put("/cancel/:order_id",protect, cancelOrder);
 
 // admin
 router.get("/admin/all", getAllOrders);

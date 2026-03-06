@@ -7,12 +7,14 @@ import {
   updateUserProfile,
 } from "../controllers/authController.js";
 import upload from "../middleware/uploadMiddleware.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 router.post("/register", upload.single("image"), registerUser);
 router.post("/login", loginUser);
-router.get("/profile", getUserProfile);
+router.get("/profile",protect, getUserProfile);
 router.put(
   "/update-profile",
+  protect,
   upload.single("image"),
   updateUserProfile,
 );

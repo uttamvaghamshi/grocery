@@ -9,24 +9,26 @@ import {
   increaseQuantity,
   decreaseQuantity,
 } from "../controllers/cartController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 
 const router = express.Router();
 
-router.post("/add", addToCart);
+router.post("/add",protect ,addToCart);
 
-router.get("/", getCart);
+router.get("/",protect, getCart);
+
+router.put("/update",protect, updateCartItem);
+
+router.delete("/remove/:product_id",protect, removeCartItem);
+
+router.delete("/clear",protect, clearCart);
 
 router.put("/update", updateCartItem);
+router.get("/count",protect, getCartCount);
 
-router.delete("/remove/:product_id", removeCartItem);
+router.put("/increase",protect, increaseQuantity);
 
-router.delete("/clear", clearCart);
-
-router.get("/count", getCartCount);
-
-router.put("/increase", increaseQuantity);
-
-router.put("/decrease", decreaseQuantity);
+router.put("/decrease",protect, decreaseQuantity);
 
 export default router;
