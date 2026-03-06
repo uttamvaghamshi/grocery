@@ -12,14 +12,14 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/users", protect, getAllUsers);
+router.get("/users", getAllUsers);
 
-router.get("/users/:id", protect, getUserById);
+router.get("/users/:id", getUserById);
 
-router.post("/users", protect, createUserByAdmin);
+router.post("/users", createUserByAdmin);
 
-router.put("/users/:id", protect, updateUserByAdmin);
+router.put("/users/:id", updateUserByAdmin);
 
-router.delete("/users/:id", protect, deleteUser);
+router.delete("/users/:id", deleteUser);
 
 export default router;
