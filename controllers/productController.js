@@ -100,63 +100,62 @@ export const getProductById = async (req, res) => {
 
 export const updateProduct = async (req, res) => {
   try {
+
     const { id } = req.params;
 
     const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({
-        success: false,
         message: "Product not found",
       });
     }
 
-    // Update product fields
-    const {
-      name,
-      description,
-      category,
-      price,
-      discount_per,
-      stock,
-      unit,
-    } = req.body;
-
-    product.name = name ?? product.name;
-    product.description = description ?? product.description;
-    product.category = category ?? product.category;
-    product.price = price ?? product.price;
-    product.discount_per = discount_per ?? product.discount_per;
-    product.stock = stock ?? product.stock;
-    product.unit = unit ?? product.unit;
+    Object.assign(product, req.body);
 
     await product.save();
 
-    // Upload new images if provided
-    if (req.files && req.files.length > 0) {
-      const images = req.files.map((file) => ({
-        product_id: product._id,
-        image_url: file.path, // or file.filename depending on your setup
-      }));
+    // Existing images from frontend
+    let existingImages = [];
 
-      await ProductImage.insertMany(images);
+    if (req.body.existingImages) {
+      existingImages = JSON.parse(req.body.existingImages);
     }
 
-    // Fetch updated images
-    const productImages = await ProductImage.find({
+    // Delete removed images
+    await ProductImage.deleteMany({
       product_id: product._id,
+      image_url: { $nin: existingImages },
+    });
+
+    // Add new images
+    if (req.files && req.files.length > 0) {
+
+      const newImages = req.files.map(file => ({
+        product_id: product._id,
+        image_url: file.path
+      }));
+
+      await ProductImage.insertMany(newImages);
+    }
+
+    const images = await ProductImage.find({
+      product_id: product._id
     });
 
     res.json({
       success: true,
       product,
-      images: productImages,
+      images
     });
+
   } catch (error) {
+
     res.status(500).json({
       message: "Server Error",
-      error: error.message,
+      error: error.message
     });
+
   }
 };
 
