@@ -1,5 +1,6 @@
 import Cart from "../models/Cart.js";
 import ProductImage from "../models/ProductImages.js";
+import Product from "../models/Product.js";
 
 export const addToCart = async (req, res) => {
   try {
@@ -29,20 +30,18 @@ export const addToCart = async (req, res) => {
       await cart.save();
     }
 
-    // Populate products
     const populatedCart = await Cart.findOne({ user_id })
       .populate("items.product_id")
       .lean();
 
-    // Get all product ids
-    const productIds = populatedCart.items.map((item) => item.product_id._id);
+    const productIds = populatedCart.items
+  .filter((item) => item.product_id)
+  .map((item) => item.product_id._id);
 
-    // Fetch images
     const images = await ProductImage.find({
       product_id: { $in: productIds },
     }).lean();
 
-    // Attach single image to each product
     const items = populatedCart.items.map((item) => {
       const image = images.find(
         (img) =>

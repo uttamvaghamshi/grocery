@@ -260,3 +260,44 @@ export const deleteProductImage = async (req, res) => {
     });
   }
 };
+
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+
+    const products = await Product.find({ category });
+
+    res.json({
+      success: true,
+      total: products.length,
+      products,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
+  }
+};
+
+export const getRecentProducts = async (req, res) => {
+  try {
+
+    const products = await Product.find()
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json({
+      success: true,
+      total: products.length,
+      products
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message
+    });
+  }
+};

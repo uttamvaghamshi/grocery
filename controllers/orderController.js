@@ -36,6 +36,7 @@ export const createOrder = async (req, res) => {
       items: orderItems,
       total_amount,
       payment_method,
+      order_status: "pending",
       delivery_address,
     });
 
