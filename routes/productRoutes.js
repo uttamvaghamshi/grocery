@@ -36,7 +36,7 @@ router.delete("/delete/:id", deleteProduct);
 
 router.delete("/image/:id", deleteProductImage);
 
-router.get('/category/:categoryId',getProductsByCategory);
+router.get('/category/:category',getProductsByCategory);
 
 
 
