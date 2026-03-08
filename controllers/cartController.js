@@ -2,9 +2,6 @@ import Cart from "../models/Cart.js";
 import ProductImage from "../models/ProductImages.js";
 import Product from "../models/Product.js";
 
-import Cart from "../models/Cart.js";
-import Product from "../models/Product.js";
-import ProductImage from "../models/ProductImage.js";
 
 export const addToCart = async (req, res) => {
   try {
@@ -14,7 +11,6 @@ export const addToCart = async (req, res) => {
 
     const qty = Number(quantity) || 1;
 
-    // check product exists
     const product = await Product.findById(product_id);
 
     if (!product) {
