@@ -6,7 +6,7 @@ import { deleteCloudinaryImage } from "../utils/deleteCloudinaryImage.js";
 
 export const createProduct = async (req, res) => {
   try {
-    const { name, description, category, price, discount_price, stock, unit } =
+    const { name, description, category, price, discount_price, stock, unit,weight } =
       req.body;
 
     // Create product
@@ -18,6 +18,7 @@ export const createProduct = async (req, res) => {
       discount_price,
       stock,
       unit,
+      weight
     });
 
     let image = null;

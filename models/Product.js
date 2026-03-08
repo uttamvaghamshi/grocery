@@ -28,6 +28,10 @@ const productSchema = new mongoose.Schema(
     unit: {
       type: String,
     },
+    weight: {
+      type: Number,
+      required : true
+    }
   },
   { timestamps: true },
 );
