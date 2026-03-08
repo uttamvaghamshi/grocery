@@ -37,7 +37,6 @@ export const createAddress = async (req, res) => {
 };
 
 
-// GET ALL ADDRESSES OF USER
 export const getUserAddresses = async (req, res) => {
   try {
 
@@ -87,8 +86,6 @@ export const getSingleAddress = async (req, res) => {
 };
 
 
-
-// UPDATE ADDRESS
 export const updateAddress = async (req, res) => {
   try {
 
@@ -119,8 +116,6 @@ export const updateAddress = async (req, res) => {
 };
 
 
-
-// DELETE ADDRESS
 export const deleteAddress = async (req, res) => {
   try {
 

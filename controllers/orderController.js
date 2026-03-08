@@ -34,7 +34,6 @@ export const createOrder = async (req, res) => {
         });
       }
 
-      // stock check
       if (product.stock < item.quantity) {
         return res.status(400).json({
           success: false,
@@ -52,7 +51,6 @@ export const createOrder = async (req, res) => {
         price: price,
       });
 
-      // reduce stock
       product.stock -= item.quantity;
       await product.save();
     }
@@ -68,7 +66,6 @@ export const createOrder = async (req, res) => {
 
     await order.save();
 
-    // clear cart
     cart.items = [];
     await cart.save();
 
