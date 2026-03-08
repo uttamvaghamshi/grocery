@@ -9,6 +9,7 @@ import {
   addProductImages,
   deleteProductImage,
   getProductsByCategory,
+  getRecentProducts,
 } from "../controllers/productController.js";
 import upload from "../middleware/uploadMiddleware.js";
 
