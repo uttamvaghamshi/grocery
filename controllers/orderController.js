@@ -2,6 +2,7 @@ import Cart from "../models/Cart.js";
 import Order from "../models/OrderItem.js";
 import Product from "../models/Product.js";
 import ProductImage from "../models/ProductImages.js";
+import Address from '../models/Address.js'
 
 
 export const createOrder = async (req, res) => {
@@ -9,6 +10,18 @@ export const createOrder = async (req, res) => {
 
     const user_id = req.user.id;
     const { payment_method, delivery_address } = req.body;
+
+    const address = await Address.findOne({
+      _id: delivery_address,
+      user_id: user_id
+    });
+
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "Delivery address not found"
+      });
+    }
 
     const cart = await Cart.findOne({ user_id })
       .populate("items.product_id");
@@ -61,7 +74,7 @@ export const createOrder = async (req, res) => {
       total_amount,
       payment_method,
       order_status: "pending",
-      delivery_address,
+      delivery_address
     });
 
     await order.save();
@@ -80,6 +93,7 @@ export const createOrder = async (req, res) => {
     console.log(error);
 
     res.status(500).json({
+      success: false,
       message: "Server Error",
       error: error.message
     });
@@ -162,15 +176,12 @@ export const getSingleOrder = async (req, res) => {
       });
     }
 
-    // Collect product ids
     const productIds = order.items.map((item) => item.product_id._id);
 
-    // Fetch product images
     const images = await ProductImage.find({
       product_id: { $in: productIds },
     }).lean();
 
-    // Attach single image
     order.items = order.items.map((item) => {
       const image = images.find(
         (img) =>
