@@ -100,6 +100,7 @@ export const addToCart = async (req, res) => {
 
 export const getCart = async (req, res) => {
   try {
+
     const user_id = req.user.id;
 
     const cart = await Cart.findOne({ user_id })
@@ -113,20 +114,31 @@ export const getCart = async (req, res) => {
       });
     }
 
-    const productIds = cart.items.map((item) => item.product_id._id);
+    // remove null products
+    const validItems = cart.items.filter(item => item.product_id);
 
+    const productIds = validItems.map(
+      item => item.product_id._id
+    );
+
+    // fetch images
     const images = await ProductImage.find({
       product_id: { $in: productIds },
     }).lean();
 
-    const itemsWithImages = cart.items.map((item) => {
+    // create image map
+    const imageMap = {};
+
+    images.forEach(img => {
+      imageMap[img.product_id] = img.image_url;
+    });
+
+    // attach images
+    const itemsWithImages = validItems.map((item) => {
+
       const product = { ...item.product_id };
 
-      const image = images.find(
-        (img) => img.product_id.toString() === product._id.toString()
-      );
-
-      product.image = image ? image.image_url : null;
+      product.image = imageMap[product._id] || null;
 
       return {
         ...item,
@@ -141,12 +153,16 @@ export const getCart = async (req, res) => {
         items: itemsWithImages,
       },
     });
+
   } catch (error) {
+
     console.error("Error fetching cart:", error);
+
     res.status(500).json({
       message: "Server Error",
       error: error.message,
     });
+
   }
 };
 
