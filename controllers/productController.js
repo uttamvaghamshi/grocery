@@ -281,13 +281,10 @@ export const getProductsByCategory = async (req, res) => {
   }
 };
 
-import Product from "../models/Product.js";
-import ProductImage from "../models/ProductImage.js";
 
 export const getRecentProducts = async (req, res) => {
   try {
 
-    // get recent 10 products
     const products = await Product.find()
       .sort({ createdAt: -1 })
       .limit(10)
@@ -295,12 +292,10 @@ export const getRecentProducts = async (req, res) => {
 
     const productIds = products.map(p => p._id);
 
-    // fetch images
     const images = await ProductImage.find({
       product_id: { $in: productIds }
     }).lean();
 
-    // attach image to product
     const data = products.map(product => {
 
       const image = images.find(
