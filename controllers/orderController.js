@@ -3,12 +3,15 @@ import Order from "../models/OrderItem.js";
 import Product from "../models/Product.js";
 import ProductImage from "../models/ProductImages.js";
 
+
 export const createOrder = async (req, res) => {
   try {
+
     const user_id = req.user.id;
     const { payment_method, delivery_address } = req.body;
 
-    const cart = await Cart.findOne({ user_id }).populate("items.product_id");
+    const cart = await Cart.findOne({ user_id })
+      .populate("items.product_id");
 
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({
@@ -18,18 +21,41 @@ export const createOrder = async (req, res) => {
     }
 
     let total_amount = 0;
+    const orderItems = [];
 
-    const orderItems = cart.items.map((item) => {
-      const price = item.product_id.price;
+    for (const item of cart.items) {
+
+      const product = item.product_id;
+
+      if (!product) {
+        return res.status(400).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
+      // stock check
+      if (product.stock < item.quantity) {
+        return res.status(400).json({
+          success: false,
+          message: `${product.name} has only ${product.stock} items left`,
+        });
+      }
+
+      const price = product.price;
 
       total_amount += price * item.quantity;
 
-      return {
-        product_id: item.product_id._id,
+      orderItems.push({
+        product_id: product._id,
         quantity: item.quantity,
         price: price,
-      };
-    });
+      });
+
+      // reduce stock
+      product.stock -= item.quantity;
+      await product.save();
+    }
 
     const order = new Order({
       user_id,
@@ -42,6 +68,7 @@ export const createOrder = async (req, res) => {
 
     await order.save();
 
+    // clear cart
     cart.items = [];
     await cart.save();
 
@@ -50,8 +77,16 @@ export const createOrder = async (req, res) => {
       message: "Order placed successfully",
       order,
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message
+    });
+
   }
 };
 

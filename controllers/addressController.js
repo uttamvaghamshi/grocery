@@ -1,9 +1,15 @@
 import Address from "../models/Address.js";
 
 
-// CREATE ADDRESS
 export const createAddress = async (req, res) => {
   try {
+
+    if (!req.user) {
+      return res.status(401).json({
+        message: "User not authenticated"
+      });
+    }
+
     const { house_no, street, area, city, state, pincode } = req.body;
 
     const address = await Address.create({
@@ -29,7 +35,6 @@ export const createAddress = async (req, res) => {
     });
   }
 };
-
 
 
 // GET ALL ADDRESSES OF USER
