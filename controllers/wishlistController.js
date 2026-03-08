@@ -1,5 +1,6 @@
 import Wishlist from "../models/Wishlist.js";
 import ProductImage from "../models/ProductImages.js";
+import Product from "../models/Product.js";
 
 export const addToWishlist = async (req, res) => {
   try {
