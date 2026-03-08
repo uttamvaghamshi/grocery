@@ -17,6 +17,8 @@ const router = express.Router();
 
 router.post("/create", upload.single("images"), createProduct);
 
+router.get("/recent", getRecentProducts);
+
 router.get("/", getProducts);
 
 router.get("/:id", getProductById);
@@ -36,6 +38,6 @@ router.delete("/image/:id", deleteProductImage);
 
 router.get('/category/:categoryId',getProductsByCategory);
 
-router.get("/recent", getRecentProducts);
+
 
 export default router;
