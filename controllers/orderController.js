@@ -3,6 +3,7 @@ import Order from "../models/OrderItem.js";
 import Product from "../models/Product.js";
 import ProductImage from "../models/ProductImages.js";
 import Address from '../models/Address.js'
+import mongoose from "mongoose";
 
 
 export const createOrder = async (req, res) => {
@@ -10,6 +11,13 @@ export const createOrder = async (req, res) => {
 
     const user_id = req.user.id;
     const { payment_method, delivery_address } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(delivery_address)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid address ID"
+      });
+    }
 
     const address = await Address.findOne({
       _id: delivery_address,
@@ -105,11 +113,10 @@ export const getMyOrders = async (req, res) => {
   try {
     const user_id = req.user.id;
 
-    // Fetch orders for this user
     const orders = await Order.find({ user_id })
       .populate("items.product_id")
       .sort({ createdAt: -1 })
-      .lean(); // use lean for easy object manipulation
+      .lean();
 
     if (!orders || orders.length === 0) {
       return res.json({
@@ -118,7 +125,6 @@ export const getMyOrders = async (req, res) => {
       });
     }
 
-    // Collect all product IDs from all orders
     const productIds = [];
     orders.forEach((order) => {
       order.items.forEach((item) => {
@@ -128,10 +134,8 @@ export const getMyOrders = async (req, res) => {
       });
     });
 
-    // Fetch images for all products
     const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
 
-    // Merge images into order items
     const ordersWithImages = orders.map((order) => {
       const itemsWithImages = order.items.map((item) => {
         const product = { ...item.product_id };
