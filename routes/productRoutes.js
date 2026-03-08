@@ -10,6 +10,7 @@ import {
   deleteProductImage,
   getProductsByCategory,
   getRecentProducts,
+  searchProducts,
 } from "../controllers/productController.js";
 import upload from "../middleware/uploadMiddleware.js";
 
@@ -20,6 +21,8 @@ router.post("/create", upload.single("images"), createProduct);
 router.get("/recent", getRecentProducts);
 
 router.get("/", getProducts);
+
+router.get('/search',searchProducts);
 
 router.get("/:id", getProductById);
 
@@ -37,6 +40,7 @@ router.delete("/delete/:id", deleteProduct);
 router.delete("/image/:id", deleteProductImage);
 
 router.get('/category/:category',getProductsByCategory);
+
 
 
 

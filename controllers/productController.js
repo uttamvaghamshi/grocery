@@ -324,4 +324,31 @@ export const getRecentProducts = async (req, res) => {
     });
 
   }
+}; 
+
+export const searchProducts = async (req, res) => {
+  try {
+
+    const { keyword } = req.query;
+
+    const products = await Product.find({
+      name: { $regex: keyword, $options: "i" }
+    }).limit(20);
+
+    res.json({
+      success: true,
+      total: products.length,
+      products
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: "Server Error",
+      error: error.message
+    });
+
+  }
 };
