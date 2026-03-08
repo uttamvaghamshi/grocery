@@ -2,29 +2,51 @@ import Cart from "../models/Cart.js";
 import ProductImage from "../models/ProductImages.js";
 import Product from "../models/Product.js";
 
+import Cart from "../models/Cart.js";
+import Product from "../models/Product.js";
+import ProductImage from "../models/ProductImage.js";
+
 export const addToCart = async (req, res) => {
   try {
+
     const user_id = req.user.id;
     const { product_id, quantity } = req.body;
+
+    const qty = Number(quantity) || 1;
+
+    // check product exists
+    const product = await Product.findById(product_id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found"
+      });
+    }
 
     let cart = await Cart.findOne({ user_id });
 
     if (!cart) {
       cart = new Cart({
         user_id,
-        items: [{ product_id, quantity }],
+        items: [{ product_id, quantity: qty }]
       });
 
       await cart.save();
+
     } else {
+
       const itemIndex = cart.items.findIndex(
-        (item) => item.product_id.toString() === product_id
+        item => item.product_id.toString() === product_id
       );
 
       if (itemIndex > -1) {
-        cart.items[itemIndex].quantity += quantity;
+        cart.items[itemIndex].quantity += qty;
       } else {
-        cart.items.push({ product_id, quantity });
+        cart.items.push({
+          product_id,
+          quantity: qty
+        });
       }
 
       await cart.save();
@@ -34,39 +56,48 @@ export const addToCart = async (req, res) => {
       .populate("items.product_id")
       .lean();
 
-    const productIds = populatedCart.items
-  .filter((item) => item.product_id)
-  .map((item) => item.product_id._id);
+    const validItems = populatedCart.items.filter(
+      item => item.product_id
+    );
+
+    const productIds = validItems.map(
+      item => item.product_id._id
+    );
 
     const images = await ProductImage.find({
-      product_id: { $in: productIds },
+      product_id: { $in: productIds }
     }).lean();
 
-    const items = populatedCart.items.map((item) => {
-      const image = images.find(
-        (img) =>
-          img.product_id.toString() === item.product_id._id.toString()
-      );
-
-      return {
-        ...item,
-        product: {
-          ...item.product_id,
-          image: image ? image.image_url : null,
-        },
-      };
+    const imageMap = {};
+    images.forEach(img => {
+      imageMap[img.product_id] = img.image_url;
     });
+
+    const items = validItems.map(item => ({
+      product_id: item.product_id._id,
+      quantity: item.quantity,
+      product: {
+        ...item.product_id,
+        image: imageMap[item.product_id._id] || null
+      }
+    }));
 
     res.json({
       success: true,
       message: "Product added to cart",
-      items,
+      total_items: items.length,
+      items
     });
+
   } catch (error) {
+
+    console.log(error);
+
     res.status(500).json({
       message: "Server Error",
-      error: error.message,
+      error: error.message
     });
+
   }
 };
 
