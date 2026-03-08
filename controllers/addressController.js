@@ -10,13 +10,13 @@ export const createAddress = async (req, res) => {
       });
     }
 
-    const { house_no, street, area, city, state, pincode } = req.body;
+    const { house_no, street, country, city, state, pincode } = req.body;
 
     const address = await Address.create({
       user_id: req.user._id,
       house_no,
       street,
-      area,
+      country,
       city,
       state,
       pincode
