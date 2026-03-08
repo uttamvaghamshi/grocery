@@ -21,10 +21,8 @@ export const addToWishlist = async (req, res) => {
       product_id,
     });
 
-    // Fetch product
     const product = await Product.findById(product_id).lean();
 
-    // Fetch single image
     const image = await ProductImage.findOne({
       product_id: product_id,
     }).lean();
