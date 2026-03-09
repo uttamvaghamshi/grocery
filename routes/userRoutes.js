@@ -5,6 +5,7 @@ import {
   loginUser,
   getUserProfile,
   updateUserProfile,
+  deleteUser,
 } from "../controllers/authController.js";
 import upload from "../middleware/uploadMiddleware.js";
 import { protect } from "../middleware/authMiddleware.js";
@@ -18,5 +19,9 @@ router.put(
   upload.single("image"),
   updateUserProfile,
 );
+
+router.delete("/delete/:id", deleteUser);
+
+
 
 export default router;
