@@ -90,7 +90,9 @@ export const getWishlist = async (req, res) => {
       .populate("product_id")
       .lean();
 
-    if (!wishlist || wishlist.length === 0) {
+    const validWishlist = wishlist.filter(item => item.product_id !== null);
+
+    if (validWishlist.length === 0) {
       return res.json({
         success: true,
         total: 0,
@@ -98,18 +100,17 @@ export const getWishlist = async (req, res) => {
       });
     }
 
-    const productIds = wishlist.map((item) => item.product_id._id);
+    const productIds = validWishlist.map(item => item.product_id._id);
 
     const images = await ProductImage.find({
       product_id: { $in: productIds },
     }).lean();
 
-    const wishlistWithImages = wishlist.map((item) => {
+    const wishlistWithImages = validWishlist.map((item) => {
       const product = { ...item.product_id };
-
-      const image = images.find(
-        (img) => img.product_id.toString() === product._id.toString()
-      );
+      const image = product._id
+        ? images.find(img => img.product_id.toString() === product._id.toString())
+        : null;
 
       product.image = image ? image.image_url : null;
 
