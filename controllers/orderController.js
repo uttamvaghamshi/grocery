@@ -319,13 +319,30 @@ export const getAllOrders = async (req, res) => {
 
 export const updateOrderStatus = async (req, res) => {
   try {
+
     const { order_id } = req.params;
     const { status } = req.body;
+
+    const allowedStatus = [
+      "pending",
+      "confirmed",
+      "shipped",
+      "delivered",
+      "cancelled"
+    ];
+
+    if (!allowedStatus.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status",
+      });
+    }
 
     const order = await Order.findById(order_id);
 
     if (!order) {
       return res.status(404).json({
+        success: false,
         message: "Order not found",
       });
     }
@@ -334,12 +351,20 @@ export const updateOrderStatus = async (req, res) => {
 
     await order.save();
 
-    res.json({
+    res.status(200).json({
       success: true,
-      message: "Order status updated",
+      message: "Order status updated successfully",
       order,
     });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+
   }
 };
