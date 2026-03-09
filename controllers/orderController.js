@@ -113,6 +113,7 @@ export const getMyOrders = async (req, res) => {
   try {
     const user_id = req.user.id;
 
+    // Fetch orders of the user with product details
     const orders = await Order.find({ user_id })
       .populate("items.product_id")
       .sort({ createdAt: -1 })
@@ -125,6 +126,7 @@ export const getMyOrders = async (req, res) => {
       });
     }
 
+    // Collect all valid product IDs
     const productIds = [];
     orders.forEach((order) => {
       order.items.forEach((item) => {
@@ -134,20 +136,33 @@ export const getMyOrders = async (req, res) => {
       });
     });
 
+    // Fetch images for these products
     const images = await ProductImage.find({ product_id: { $in: productIds } }).lean();
 
+    // Map orders with images safely
     const ordersWithImages = orders.map((order) => {
-      const itemsWithImages = order.items.map((item) => {
-        const product = { ...item.product_id };
-        product.images = images
-          .filter((img) => img.product_id.toString() === product._id.toString())
-          .map((img) => img.image_url);
+      // Filter out items without valid product
+      const itemsWithImages = order.items
+        .filter(item => item.product_id !== null)
+        .map((item) => {
+          const product = { ...item.product_id };
+          const productIdExists = product && product._id;
 
-        return {
-          ...item,
-          product_id: product,
-        };
-      });
+          // Assign images safely
+          product.images = images
+            .filter(
+              (img) =>
+                img.product_id &&
+                productIdExists &&
+                img.product_id.toString() === product._id.toString()
+            )
+            .map((img) => img.image_url);
+
+          return {
+            ...item,
+            product_id: product,
+          };
+        });
 
       return {
         ...order,
@@ -161,7 +176,11 @@ export const getMyOrders = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching orders:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 export const getSingleOrder = async (req, res) => {

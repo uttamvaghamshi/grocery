@@ -34,7 +34,7 @@ export const createAddress = async (req, res) => {
       error: error.message
     });
   }
-};
+}
 
 
 export const getUserAddresses = async (req, res) => {
