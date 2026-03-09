@@ -16,7 +16,7 @@ router.post("/create",protect, createOrder);
 
 router.get("/my-orders",protect, getMyOrders);
 
-router.get("/:order_id",protect, getSingleOrder);
+router.get("/:order_id", getSingleOrder);
 
 router.put("/cancel/:order_id",protect, cancelOrder);
 
