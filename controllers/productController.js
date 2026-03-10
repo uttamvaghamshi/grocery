@@ -342,14 +342,37 @@ export const searchProducts = async (req, res) => {
       return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
     };
 
+    // Find products matching keyword
     const products = await Product.find({
       name: { $regex: escapeRegex(keyword), $options: "i" }
-    }).limit(20);
+    })
+      .limit(20)
+      .lean();
+
+    // Get all product IDs
+    const productIds = products.map(p => p._id);
+
+    // Find images for these products
+    const images = await ProductImage.find({
+      product_id: { $in: productIds }
+    }).lean();
+
+    // Map products to include their first image (or null if none)
+    const data = products.map(product => {
+      const image = images.find(
+        img => img.product_id.toString() === product._id.toString()
+      );
+
+      return {
+        ...product,
+        image: image ? image.image_url : null
+      };
+    });
 
     res.json({
       success: true,
-      total: products.length,
-      products
+      total: data.length,
+      products: data
     });
 
   } catch (error) {
