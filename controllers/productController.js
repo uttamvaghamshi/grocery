@@ -266,22 +266,43 @@ export const getProductsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
 
-    const products = await Product.find({ category });
+    // Find products in the given category
+    const products = await Product.find({ category }).lean();
+
+    // Get product IDs
+    const productIds = products.map(p => p._id);
+
+    // Find images for these products
+    const images = await ProductImage.find({
+      product_id: { $in: productIds }
+    }).lean();
+
+    // Map products to include their first image (or null if none)
+    const data = products.map(product => {
+      const image = images.find(
+        img => img.product_id.toString() === product._id.toString()
+      );
+
+      return {
+        ...product,
+        image: image ? image.image_url : null
+      };
+    });
 
     res.json({
       success: true,
-      total: products.length,
-      products,
+      total: data.length,
+      products: data
     });
 
   } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: "Server Error",
-      error: error.message,
+      error: error.message
     });
   }
 };
-
 
 export const getRecentProducts = async (req, res) => {
   try {
