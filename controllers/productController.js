@@ -329,11 +329,21 @@ export const getRecentProducts = async (req, res) => {
 
 export const searchProducts = async (req, res) => {
   try {
-
     const { keyword } = req.query;
 
+    if (!keyword || keyword.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Keyword is required"
+      });
+    }
+
+    const escapeRegex = (text) => {
+      return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    };
+
     const products = await Product.find({
-      name: { $regex: keyword, $options: "i" }
+      name: { $regex: escapeRegex(keyword), $options: "i" }
     }).limit(20);
 
     res.json({
@@ -343,13 +353,11 @@ export const searchProducts = async (req, res) => {
     });
 
   } catch (error) {
-
     console.log(error);
 
     res.status(500).json({
       message: "Server Error",
       error: error.message
     });
-
   }
 };
